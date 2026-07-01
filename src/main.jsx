@@ -31,6 +31,10 @@ async function api(path, options = {}) {
 }
 
 function App() {
+  if (window.location.pathname === '/account-deletion') {
+    return <AccountDeletion />;
+  }
+
   if (window.location.pathname === '/privacy') {
     return <PrivacyPolicy />;
   }
@@ -255,6 +259,65 @@ function App() {
           </>
         )}
       </section>
+    </main>
+  );
+}
+
+function AccountDeletion() {
+  return (
+    <main className="policy-page">
+      <article className="policy">
+        <p className="policy-kicker">Gofer Worker</p>
+        <h1>Account And Data Deletion</h1>
+        <p className="policy-updated">Last updated: July 1, 2026</p>
+
+        <p>
+          Gofer Worker users can request deletion of their worker account and associated
+          personal data by contacting Gofer support.
+        </p>
+
+        <h2>How To Request Deletion</h2>
+        <ol>
+          <li>
+            Send an email to{' '}
+            <a href="mailto:sabyasachinishant100@gmail.com">sabyasachinishant100@gmail.com</a>.
+          </li>
+          <li>Use the subject line: Gofer Worker account deletion request.</li>
+          <li>Include the phone number used in the Gofer Worker app.</li>
+          <li>
+            We may ask for additional verification to confirm that the request is coming from
+            the account owner.
+          </li>
+        </ol>
+
+        <h2>Data Deleted</h2>
+        <p>After a valid deletion request, we will delete or anonymize eligible account data, including:</p>
+        <ul>
+          <li>Worker profile details such as name, phone number, city, work area, and worker type.</li>
+          <li>Uploaded identity document images and selfie images where deletion is legally permitted.</li>
+          <li>Worker enrollment and verification records where deletion is legally permitted.</li>
+        </ul>
+
+        <h2>Data We May Keep</h2>
+        <p>
+          Some information may be retained when necessary for fraud prevention, customer safety,
+          legal compliance, dispute resolution, audit logs, security records, or regulatory
+          obligations. Retained data will be kept only for as long as needed for those purposes.
+        </p>
+
+        <h2>Processing Time</h2>
+        <p>
+          We aim to process valid deletion requests within 30 days. If more time is required due
+          to verification, legal, security, or technical reasons, we will inform the requester
+          where possible.
+        </p>
+
+        <h2>Contact</h2>
+        <p>
+          For deletion, correction, or privacy questions, contact:{' '}
+          <a href="mailto:sabyasachinishant100@gmail.com">sabyasachinishant100@gmail.com</a>
+        </p>
+      </article>
     </main>
   );
 }
