@@ -31,6 +31,10 @@ async function api(path, options = {}) {
 }
 
 function App() {
+  if (window.location.pathname === '/privacy') {
+    return <PrivacyPolicy />;
+  }
+
   const [workers, setWorkers] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedWorker, setSelectedWorker] = useState(null);
@@ -251,6 +255,102 @@ function App() {
           </>
         )}
       </section>
+    </main>
+  );
+}
+
+function PrivacyPolicy() {
+  return (
+    <main className="policy-page">
+      <article className="policy">
+        <p className="policy-kicker">Gofer Worker</p>
+        <h1>Privacy Policy</h1>
+        <p className="policy-updated">Last updated: July 1, 2026</p>
+
+        <p>
+          This Privacy Policy explains how Gofer Worker collects, uses, stores, and shares
+          information when workers use the Gofer Worker mobile application to enroll,
+          complete verification, and access worker-related services.
+        </p>
+
+        <h2>Information We Collect</h2>
+        <p>We may collect the following information from workers:</p>
+        <ul>
+          <li>Personal details such as full name, phone number, age, language, city, and work area.</li>
+          <li>Worker profile details such as worker type, professional categories, experience, travel radius, and emergency contact if provided.</li>
+          <li>Identity verification information such as ID document images, selfie images, ID type, consent status, KYC status, and verification results.</li>
+          <li>Technical information such as device, app, and request information needed to operate, secure, and troubleshoot the service.</li>
+        </ul>
+
+        <h2>How We Use Information</h2>
+        <p>We use worker information to:</p>
+        <ul>
+          <li>Create and manage worker enrollment profiles.</li>
+          <li>Verify worker identity, eligibility, and profile authenticity.</li>
+          <li>Protect customers, workers, and the Gofer platform from fraud, misuse, and safety risks.</li>
+          <li>Review, approve, reject, or request manual review of worker applications.</li>
+          <li>Provide worker app functionality, support, service updates, and operational communication.</li>
+          <li>Comply with legal, regulatory, security, and dispute resolution requirements.</li>
+        </ul>
+
+        <h2>Consent For Verification</h2>
+        <p>
+          Before submitting identity documents or selfie images, workers are asked to provide
+          consent for verification. Verification information may be processed by Gofer and by
+          trusted verification providers for identity checks, document checks, face matching,
+          liveness checks, background checks, fraud prevention, and platform safety.
+        </p>
+
+        <h2>Sharing Of Information</h2>
+        <p>We do not sell worker personal information. We may share information only when needed with:</p>
+        <ul>
+          <li>Service providers that host, store, process, or secure app and backend data.</li>
+          <li>Identity verification and KYC providers such as HyperVerge or similar providers when verification is enabled.</li>
+          <li>Gofer administrators and authorized operations staff who need access for verification, support, safety, or compliance.</li>
+          <li>Government, law enforcement, or legal authorities when required by applicable law or valid legal process.</li>
+        </ul>
+
+        <h2>Data Storage And Security</h2>
+        <p>
+          We use reasonable technical and organizational safeguards to protect worker data.
+          Data is transmitted using HTTPS where supported. Identity documents and selfie images
+          are intended to be stored in private storage and accessed only for verification,
+          support, safety, or compliance purposes.
+        </p>
+
+        <h2>Data Retention</h2>
+        <p>
+          We keep worker information only for as long as needed for enrollment, verification,
+          worker account management, customer safety, fraud prevention, legal compliance, and
+          business record purposes. If a worker requests deletion, we will delete or anonymize
+          eligible information unless we need to retain it for legal, safety, fraud prevention,
+          dispute, or compliance reasons.
+        </p>
+
+        <h2>Worker Choices And Deletion Requests</h2>
+        <p>
+          Workers may request access, correction, or deletion of their information by contacting
+          us. We may need to verify the requester before processing the request.
+        </p>
+
+        <h2>Children</h2>
+        <p>
+          Gofer Worker is intended for adults who want to enroll as workers. It is not intended
+          for children, and we do not knowingly collect personal information from children.
+        </p>
+
+        <h2>Changes To This Policy</h2>
+        <p>
+          We may update this Privacy Policy from time to time. Any changes will be posted on
+          this page with an updated date.
+        </p>
+
+        <h2>Contact Us</h2>
+        <p>
+          For privacy questions, support, correction, or deletion requests, contact us at:{' '}
+          <a href="mailto:sabyasachinishant100@gmail.com">sabyasachinishant100@gmail.com</a>
+        </p>
+      </article>
     </main>
   );
 }
