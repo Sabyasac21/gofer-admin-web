@@ -64,6 +64,7 @@ function VerificationAdmin({ onAvailability }) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
 
   const filteredWorkers = useMemo(() => {
     return workers.filter((worker) => {
@@ -116,6 +117,34 @@ function VerificationAdmin({ onAvailability }) {
           reason: `Admin simulated ${decision} for local HyperVerge flow`,
         }),
       });
+      await loadWorkers();
+      await loadWorker(selectedWorker.id);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function approveSelectedWorker() {
+    if (!selectedWorker || selectedWorker.workerStatus === 'verified') return;
+    const confirmed = window.confirm(
+      `Approve ${selectedWorker.fullName} as a verified Gofer worker?\n\n` +
+      'Confirm that their profile, identity and submitted documents have been reviewed.',
+    );
+    if (!confirmed) return;
+
+    setSaving(true);
+    setError('');
+    setNotice('');
+    try {
+      await api(`/api/admin/workers/${selectedWorker.id}/approve`, {
+        method: 'POST',
+        body: JSON.stringify({
+          notes: 'Profile, identity and submitted documents approved from verification review',
+        }),
+      });
+      setNotice(`${selectedWorker.fullName} has been approved successfully.`);
       await loadWorkers();
       await loadWorker(selectedWorker.id);
     } catch (err) {
@@ -211,6 +240,12 @@ function VerificationAdmin({ onAvailability }) {
 
       <section className="content">
         {error && <div className="error">{error}</div>}
+        {notice && (
+          <div className="success-notice">
+            <CircleCheck size={18} />
+            {notice}
+          </div>
+        )}
         {!selectedWorker ? (
           <div className="empty">Select a worker to review.</div>
         ) : (
@@ -242,9 +277,12 @@ function VerificationAdmin({ onAvailability }) {
                 <Info label="Reference" value={selectedWorker.kycReferenceId || '-'} />
                 <Info label="Completed" value={formatDate(selectedWorker.kycCompletedAt)} />
                 <div className="actions">
-                  <button onClick={() => simulateKyc('verified')} disabled={saving}>
+                  <button
+                    onClick={approveSelectedWorker}
+                    disabled={saving || selectedWorker.workerStatus === 'verified'}
+                  >
                     <UserCheck size={16} />
-                    Mark Verified
+                    {selectedWorker.workerStatus === 'verified' ? 'Verified' : 'Approve worker'}
                   </button>
                   <button onClick={() => simulateKyc('manual_review')} disabled={saving}>
                     <BadgeCheck size={16} />
@@ -303,6 +341,39 @@ const CHECK_LABELS = {
   withinTravelRadius: 'Within travel radius',
 };
 
+const WORKER_GROUPS = [
+  {
+    id: 'verification',
+    label: 'Awaiting verification',
+    description: 'Admin approval required',
+    statuses: ['not_verified'],
+  },
+  {
+    id: 'ready',
+    label: 'Ready for work',
+    description: 'Can receive matching jobs now',
+    statuses: ['ready'],
+  },
+  {
+    id: 'busy',
+    label: 'Currently assigned',
+    description: 'Completing an active job',
+    statuses: ['busy'],
+  },
+  {
+    id: 'attention',
+    label: 'Needs attention',
+    description: 'Online but blocked by a readiness check',
+    statuses: ['stale', 'notification_unavailable', 'location_unavailable', 'online_not_eligible'],
+  },
+  {
+    id: 'offline',
+    label: 'Offline',
+    description: 'No active online session',
+    statuses: ['offline'],
+  },
+];
+
 function AvailabilityDashboard({ onVerification }) {
   const [data, setData] = useState({
     workers: [],
@@ -316,7 +387,9 @@ function AvailabilityDashboard({ onVerification }) {
   const [status, setStatus] = useState('all');
   const [loading, setLoading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [approving, setApproving] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [preview, setPreview] = useState(null);
   const [criteria, setCriteria] = useState({
     serviceType: 'helper',
@@ -368,6 +441,34 @@ function AvailabilityDashboard({ onVerification }) {
     }
   }
 
+  async function approveWorker(worker) {
+    if (!worker || worker.workerStatus === 'verified') return;
+    const confirmed = window.confirm(
+      `Approve ${worker.fullName} as a verified Gofer worker?\n\n` +
+      'Confirm that their profile, identity and submitted documents have been reviewed.',
+    );
+    if (!confirmed) return;
+
+    setApproving(true);
+    setError('');
+    setNotice('');
+    try {
+      await api(`/api/admin/workers/${worker.id}/approve`, {
+        method: 'POST',
+        body: JSON.stringify({
+          notes: 'Profile, identity and submitted documents approved from worker operations',
+        }),
+      });
+      setNotice(`${worker.fullName} is now verified and eligible for readiness checks.`);
+      setPreview(null);
+      await loadAvailability({ silent: true });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setApproving(false);
+    }
+  }
+
   useEffect(() => {
     loadAvailability();
   }, []);
@@ -403,6 +504,18 @@ function AvailabilityDashboard({ onVerification }) {
         (status === 'all' || worker.status === status);
     });
   }, [data.workers, query, region, status]);
+
+  const groupedWorkers = useMemo(() => {
+    return WORKER_GROUPS
+      .map((group) => ({
+        ...group,
+        workers: filteredWorkers
+          .filter((worker) => group.statuses.includes(worker.status))
+          .sort((left, right) =>
+            new Date(right.submittedAt || 0) - new Date(left.submittedAt || 0)),
+      }))
+      .filter((group) => group.workers.length > 0);
+  }, [filteredWorkers]);
 
   const selectedWorker =
     data.workers.find((worker) => worker.id === selectedId) || null;
@@ -469,20 +582,38 @@ function AvailabilityDashboard({ onVerification }) {
           {loading ? 'Refreshing' : 'Refresh availability'}
         </button>
 
-        <div className="worker-list">
-          {filteredWorkers.map((worker) => (
-            <button
-              key={worker.id}
-              className={`worker-row availability-row ${worker.id === selectedId ? 'active' : ''}`}
-              onClick={() => setSelectedId(worker.id)}
-            >
-              <span className="worker-row-title">
-                <PresenceDot status={worker.status} />
-                {worker.fullName}
-              </span>
-              <small>{worker.region} · {formatRelative(worker.lastSeenAt)}</small>
-              <AvailabilityBadge status={worker.status} />
-            </button>
+        <div className="worker-list categorized-worker-list">
+          {groupedWorkers.map((group) => (
+            <section className="worker-group" key={group.id}>
+              <div className="worker-group-heading">
+                <div>
+                  <strong>{group.label}</strong>
+                  <small>{group.description}</small>
+                </div>
+                <span>{group.workers.length}</span>
+              </div>
+              <div className="worker-group-rows">
+                {group.workers.map((worker) => (
+                  <button
+                    key={worker.id}
+                    className={`worker-row availability-row ${worker.id === selectedId ? 'active' : ''}`}
+                    onClick={() => setSelectedId(worker.id)}
+                  >
+                    <span className="worker-row-title">
+                      <PresenceDot status={worker.status} />
+                      {worker.fullName}
+                      {isRecentWorker(worker.submittedAt) && <em className="new-worker">New</em>}
+                    </span>
+                    <small>
+                      {worker.region} · {worker.lastSeenAt
+                        ? formatRelative(worker.lastSeenAt)
+                        : `joined ${formatRelative(worker.submittedAt)}`}
+                    </small>
+                    <AvailabilityBadge status={worker.status} />
+                  </button>
+                ))}
+              </div>
+            </section>
           ))}
           {!loading && filteredWorkers.length === 0 && (
             <div className="list-empty">No workers match these filters.</div>
@@ -492,6 +623,12 @@ function AvailabilityDashboard({ onVerification }) {
 
       <section className="content operations-content">
         {error && <div className="error">{error}</div>}
+        {notice && (
+          <div className="success-notice">
+            <CircleCheck size={18} />
+            {notice}
+          </div>
+        )}
         <header className="operations-header">
           <div>
             <p className="eyebrow">LIVE OPERATIONS</p>
@@ -589,6 +726,9 @@ function AvailabilityDashboard({ onVerification }) {
               selectedWorker
             }
             taskSpecific={Boolean(preview)}
+            approving={approving}
+            onApprove={approveWorker}
+            onOpenVerification={onVerification}
           />
         )}
       </section>
@@ -596,7 +736,13 @@ function AvailabilityDashboard({ onVerification }) {
   );
 }
 
-function WorkerAvailabilityDetail({ worker, taskSpecific }) {
+function WorkerAvailabilityDetail({
+  worker,
+  taskSpecific,
+  approving,
+  onApprove,
+  onOpenVerification,
+}) {
   const checkEntries = Object.entries(worker.checks || {})
     .filter(([key]) => taskSpecific || !['serviceEligible', 'withinTravelRadius'].includes(key));
   return (
@@ -614,6 +760,31 @@ function WorkerAvailabilityDetail({ worker, taskSpecific }) {
           <span>{worker.onlineSince ? `Online ${formatDuration(worker.onlineSince)}` : 'No active online session'}</span>
         </div>
       </header>
+
+      {worker.workerStatus !== 'verified' && (
+        <section className="verification-action">
+          <div className="verification-action-icon">
+            <ShieldCheck size={24} />
+          </div>
+          <div>
+            <p className="eyebrow">ADMIN ACTION REQUIRED</p>
+            <h3>Review and approve this worker</h3>
+            <p>
+              Approval marks the worker as verified. Presence, location and notification
+              checks will still be required before jobs can be dispatched.
+            </p>
+          </div>
+          <div className="verification-action-buttons">
+            <button className="secondary-action" onClick={onOpenVerification}>
+              Review documents
+            </button>
+            <button onClick={() => onApprove(worker)} disabled={approving}>
+              <UserCheck size={17} />
+              {approving ? 'Approving…' : 'Approve worker'}
+            </button>
+          </div>
+        </section>
+      )}
 
       <div className="panel-grid availability-panels">
         <section className="panel">
@@ -683,6 +854,13 @@ function WorkerAvailabilityDetail({ worker, taskSpecific }) {
       </div>
     </section>
   );
+}
+
+function isRecentWorker(submittedAt) {
+  if (!submittedAt) return false;
+  const submitted = new Date(submittedAt).getTime();
+  return Number.isFinite(submitted) &&
+    Date.now() - submitted <= 7 * 24 * 60 * 60 * 1000;
 }
 
 function AccountDeletion() {
